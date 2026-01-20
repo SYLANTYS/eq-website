@@ -34,6 +34,7 @@ const supabase = createClient(
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
+  const [isLogin, setIsLogin] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,10 +42,10 @@ export default function Home() {
     const form = e.target;
     const email = form.email.value;
     const password = form.password.value;
-    const confirmPassword = form.confirmPassword.value;
+    const confirmPassword = form.confirmPassword?.value;
 
-    // Validate passwords match
-    if (password !== confirmPassword) {
+    // Validate passwords match (only for signup)
+    if (!isLogin && password !== confirmPassword) {
       toast.error("Passwords do not match");
       return;
     }
@@ -52,20 +53,46 @@ export default function Home() {
     setLoading(true);
 
     try {
-      toast.success("Passwords match! Creating account...");
+      if (isLogin) {
+        // Login flow
+        toast.success("Logging in...");
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
 
-      // Create user in Supabase with password
-      const { user, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-      if (error) throw error;
+        // Create Stripe checkout session
+        const { url } = await subscribeAction({ email });
 
-      // Create Stripe checkout session
-      const { url } = await subscribeAction({ email });
+        // Redirect to Stripe checkout
+        window.location.href = url;
+      } else {
+        // Signup flow
+        toast.success("Passwords match! Creating account...");
 
-      // Redirect to Stripe checkout
-      window.location.href = url;
+        // Create user in Supabase with password
+        const { user, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        // Check if email already exists
+        if (error?.message?.includes("already registered")) {
+          toast.info("Email already registered. Switching to login...");
+          setIsLogin(true);
+          setLoading(false);
+          return;
+        }
+
+        if (error) throw error;
+
+        // Create Stripe checkout session
+        const { url } = await subscribeAction({ email });
+
+        // Redirect to Stripe checkout
+        window.location.href = url;
+      }
     } catch (err) {
       console.error("Error:", err);
       toast.error(err.message || "Server error. Try again later.");
@@ -122,28 +149,32 @@ export default function Home() {
                   required
                 />
               </div>
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="confirmPassword"
-                  className="text-sm font-medium"
-                >
-                  Confirm Password
-                </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  className="w-full p-2 border border-gray-300 rounded-xl text-white bg-black"
-                  placeholder="********"
-                  required
-                />
-              </div>
-              <p className="text-gray-400 text-sm text-center max-w-sm">
-                <i>
-                  <strong>Remember</strong> this email and password to log in on
-                  the <strong>Pro</strong> tab
-                </i>
-              </p>
+              {!isLogin && (
+                <div className="flex flex-col gap-2">
+                  <label
+                    htmlFor="confirmPassword"
+                    className="text-sm font-medium"
+                  >
+                    Confirm Password
+                  </label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    className="w-full p-2 border border-gray-300 rounded-xl text-white bg-black"
+                    placeholder="********"
+                    required={!isLogin}
+                  />
+                </div>
+              )}
+              {!isLogin && (
+                <p className="text-gray-400 text-sm text-center max-w-sm">
+                  <i>
+                    <strong>Remember</strong> this email and password to log in
+                    on the <strong>Pro</strong> tab
+                  </i>
+                </p>
+              )}
               <button
                 type="submit"
                 disabled={loading}
@@ -155,6 +186,15 @@ export default function Home() {
               >
                 {loading ? "Loading..." : "Create Pro Account ($4.99 USD)"}
               </button>
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={() => setIsLogin(false)}
+                  className="text-gray-400 hover:text-gray-300 text-sm text-center cursor-pointer"
+                >
+                  Back to Sign Up
+                </button>
+              )}
             </form>
           </div>
         </div>

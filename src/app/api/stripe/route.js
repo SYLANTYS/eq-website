@@ -30,7 +30,7 @@ export async function POST(req) {
       if (customerEmail) {
         console.log("Processing payment for:", customerEmail);
 
-        // Update user profile to mark as paid
+        // Update user profile to mark as paid by updating is_pro_user querying by email
         const { error } = await supabaseAdmin
           .from("profiles")
           .update({
