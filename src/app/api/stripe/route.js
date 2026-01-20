@@ -19,60 +19,39 @@ export async function POST(req) {
 
   const data = event.data.object;
 
-  // ✅ Checkout completed → activate subscription if paid
-  if (
-    event.type === "checkout.session.completed" &&
-    data.payment_status === "paid"
-  ) {
-    const subscriptionId = data.subscription;
+  try {
+    // ✅ One-time payment completed
+    if (
+      event.type === "checkout.session.completed" &&
+      data.payment_status === "paid"
+    ) {
+      const customerEmail = data.customer_email;
 
-    if (subscriptionId) {
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      const { id, email } = subscription.metadata || {};
-      const trialEnd = subscription.trial_end;
+      if (customerEmail) {
+        console.log("Processing payment for:", customerEmail);
 
-      if (id && email) {
-        await supabaseAdmin
+        // Update user profile to mark as paid
+        const { error } = await supabaseAdmin
           .from("profiles")
           .update({
-            subscription: true,
-            trial_deadline: new Date(
-              (trialEnd ?? Math.floor(Date.now() / 1000)) * 1000,
-            ),
+            is_pro_user: true,
           })
-          .eq("id", id)
-          .eq("email", email);
+          .eq("email", customerEmail);
+
+        if (error) {
+          console.error("Supabase update error:", error);
+          throw error;
+        }
+
+        console.log("Successfully updated user:", customerEmail);
       }
     }
+
+    return new Response(JSON.stringify({ received: true }), { status: 200 });
+  } catch (err) {
+    console.error("Webhook processing error:", err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+    });
   }
-
-  // ❌ Subscription became inactive or was deleted
-  if (
-    event.type === "customer.subscription.deleted" ||
-    (event.type === "customer.subscription.updated" &&
-      data.status !== "active" &&
-      data.status !== "trialing")
-  ) {
-    const { id, email } = data.metadata || {};
-
-    if (!id || !email) {
-      const subscription = await stripe.subscriptions.retrieve(data.id);
-      const meta = subscription.metadata || {};
-      meta.id &&
-        meta.email &&
-        (await supabaseAdmin
-          .from("profiles")
-          .update({ subscription: false })
-          .eq("id", meta.id)
-          .eq("email", meta.email));
-    } else {
-      await supabaseAdmin
-        .from("profiles")
-        .update({ subscription: false })
-        .eq("id", id)
-        .eq("email", email);
-    }
-  }
-
-  return new Response(null, { status: 200 });
 }
