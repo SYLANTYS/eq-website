@@ -113,8 +113,8 @@ export default function Home() {
             </h1>
 
             <p className="text-gray-400 text-base text-center max-w-sm">
-              Airs Pro is a one-time upgrade. Unlock premium themes + all future
-              updates. No recurring charges.
+              Airs Pro is a one-time upgrade. Unlock premium themes instantly
+              after checkout. No recurring charges.
             </p>
 
             <form
@@ -123,7 +123,7 @@ export default function Home() {
               className="flex flex-col gap-4 w-full max-w-sm text-left"
               autoComplete="off"
             >
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 mb-1">
                 <label htmlFor="email" className="text-sm font-medium">
                   Email
                 </label>
@@ -169,10 +169,8 @@ export default function Home() {
               )}
               {!isLogin && (
                 <p className="text-gray-400 text-sm text-center max-w-sm">
-                  <i>
-                    <strong>Remember</strong> this email and password to log in
-                    on the <strong>Pro</strong> tab
-                  </i>
+                  <strong>Remember</strong> this email and password to log in on
+                  the <strong>Pro</strong> tab
                 </p>
               )}
               <button
@@ -184,8 +182,11 @@ export default function Home() {
                     : "bg-gray-100 text-black cursor-pointer"
                 }`}
               >
-                {loading ? "Loading..." : "Create Pro Account ($4.99 USD)"}
+                {loading ? "Loading..." : "Create Pro Account & Pay ($4.99)"}
               </button>
+              <p className="text-gray-400 text-sm text-center max-w-sm -mt-2">
+                <i>Secure checkout via Stripe</i>
+              </p>
               {isLogin && (
                 <button
                   type="button"
