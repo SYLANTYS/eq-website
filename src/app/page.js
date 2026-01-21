@@ -4,8 +4,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { subscribeAction } from "@/actions/stripe";
 import { Toaster, toast } from "sonner";
+import { GoogleChromeLogoIcon } from "@phosphor-icons/react";
 
 /**
  * Supabase schema notes:
@@ -34,69 +34,24 @@ const supabase = createClient(
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
-  const [isLogin, setIsLogin] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const form = e.target;
-    const email = form.email.value;
-    const password = form.password.value;
-    const confirmPassword = form.confirmPassword?.value;
-
-    // Validate passwords match (only for signup)
-    if (!isLogin && password !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
+  const handleGoogleSignIn = async () => {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        // Login flow
-        toast.success("Logging in...");
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
+      toast.success("Redirecting to Google...");
 
-        // Create Stripe checkout session
-        const { url } = await subscribeAction({ email });
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
 
-        // Redirect to Stripe checkout
-        window.location.href = url;
-      } else {
-        // Signup flow
-        toast.success("Passwords match! Creating account...");
-
-        // Create user in Supabase with password
-        const { user, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-
-        // Check if email already exists
-        if (error?.message?.includes("already registered")) {
-          toast.info("Email already registered. Switching to login...");
-          setIsLogin(true);
-          setLoading(false);
-          return;
-        }
-
-        if (error) throw error;
-
-        // Create Stripe checkout session
-        const { url } = await subscribeAction({ email });
-
-        // Redirect to Stripe checkout
-        window.location.href = url;
-      }
+      if (error) throw error;
     } catch (err) {
       console.error("Error:", err);
-      toast.error(err.message || "Server error. Try again later.");
-    } finally {
+      toast.error(err.message || "Failed to sign in with Google");
       setLoading(false);
     }
   };
@@ -105,98 +60,52 @@ export default function Home() {
     <div className="bg-black">
       <Toaster position="top-right" />
       <Navbar />
-      <main className="min-h-[calc(100vh-297px)] flex items-center justify-center px-6 text-white mb-8">
+      <main className="min-h-[calc(100vh-297px)] flex items-center justify-center px-6 text-white my-8">
         <div className="max-w-screen-md w-full mx-auto">
-          <div className="flex flex-col items-center gap-5">
-            <h1 className="text-2xl font-bold text-center">
+          <div className="flex flex-col items-center gap-10">
+            <h1 className="text-4xl font-bold text-center">
               Unlock Airs Pro Themes
             </h1>
+            <div className="flex flex-col items-center gap-4 mb-8">
+              <p className="text-gray-300 text-lg text-center max-w-sm">
+                Airs Pro is a <strong>one-time</strong> upgrade.
+              </p>
 
-            <p className="text-gray-400 text-base text-center max-w-sm">
-              Airs Pro is a one-time upgrade. Unlock premium themes instantly
-              after checkout. No recurring charges.
-            </p>
+              <p className="text-gray-300 text-lg text-center max-w-sm">
+                Sign in securely, then complete checkout to unlock{" "}
+                <strong>premium </strong> themes instantly.
+              </p>
 
-            <form
-              id="subscriptionForm"
-              onSubmit={handleSubmit}
-              className="flex flex-col gap-4 w-full max-w-sm text-left"
-              autoComplete="off"
-            >
-              <div className="flex flex-col gap-2 mb-1">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  className="w-full p-2 border border-gray-300 rounded-xl text-white bg-black"
-                  placeholder="your@email.com"
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  className="w-full p-2 border border-gray-300 rounded-xl text-white bg-black"
-                  placeholder="********"
-                  required
-                />
-              </div>
-              {!isLogin && (
-                <div className="flex flex-col gap-2">
-                  <label
-                    htmlFor="confirmPassword"
-                    className="text-sm font-medium"
-                  >
-                    Confirm Password
-                  </label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    className="w-full p-2 border border-gray-300 rounded-xl text-white bg-black"
-                    placeholder="********"
-                    required={!isLogin}
-                  />
-                </div>
-              )}
-              {!isLogin && (
-                <p className="text-gray-400 text-sm text-center max-w-sm">
-                  <strong>Remember</strong> this email and password to log in on
-                  the <strong>Pro</strong> tab
-                </p>
-              )}
+              <p className="text-gray-300 text-lg text-center max-w-sm">
+                <strong>No</strong> recurring charges.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 w-full max-w-sm">
               <button
-                type="submit"
+                onClick={handleGoogleSignIn}
                 disabled={loading}
-                className={`w-full px-6 py-2 rounded-xl transition ${
+                className={`w-full px-6 py-2 rounded-xl transition flex items-center justify-center gap-2 ${
                   loading
                     ? "bg-gray-100 text-black opacity-70 cursor-not-allowed"
-                    : "bg-gray-100 text-black cursor-pointer"
+                    : "bg-gray-100 text-black cursor-pointer hover:bg-gray-200"
                 }`}
               >
-                {loading ? "Loading..." : "Create Pro Account & Pay ($4.99)"}
+                <GoogleChromeLogoIcon
+                  size={30}
+                  weight="bold"
+                  className="text-green-600"
+                />
+                {loading ? "Loading..." : "Continue with Google"}
               </button>
-              <p className="text-gray-400 text-sm text-center max-w-sm -mt-2">
-                <i>Secure checkout via Stripe</i>
+              <p className="text-gray-400 text-sm text-center max-w-sm my-1">
+                <i>Secure checkout powered by Stripe ($4.99)</i>
               </p>
-              {isLogin && (
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(false)}
-                  className="text-gray-400 hover:text-gray-300 text-sm text-center cursor-pointer"
-                >
-                  Back to Sign Up
-                </button>
-              )}
-            </form>
+              <p className="text-gray-500 text-xs text-center max-w-sm">
+                Apple Pay available on iPhone at
+                <i> airs-audio-system.vercel.app</i>
+              </p>
+            </div>
           </div>
         </div>
       </main>

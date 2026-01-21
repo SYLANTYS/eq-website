@@ -3,7 +3,8 @@
 import { stripe } from "@/lib/stripe";
 
 export const subscribeAction = async ({ email }) => {
-  const priceId = "price_1SrnhZJZXyiCiyglYbMGkGOH"; // permanent
+  const priceId = "price_1SrnhZJZXyiCiyglYbMGkGOH"; // permanent live WHEN GIT PUSHING
+  // const priceId = "price_1SrUTIQwZPNYyBC6AxgOgJTu"; // test
 
   const { url } = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
