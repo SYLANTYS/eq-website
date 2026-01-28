@@ -30,9 +30,9 @@ export default function AuthCallbackLogin() {
           return;
         }
 
-        // Redirect to login page
+        // Redirect to login page with refresh
         toast.success("Redirecting to login...");
-        router.push("/login");
+        window.location.href = "/login";
       } catch (err) {
         console.error("Auth callback error:", err);
         toast.error(err.message || "Authentication error");
