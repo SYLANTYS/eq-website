@@ -73,7 +73,7 @@ export default function Home() {
 
               <p className="text-gray-300 text-lg text-center max-w-sm">
                 Sign in securely, then complete checkout to unlock{" "}
-                <strong>premium </strong> themes instantly.
+                <strong>all premium </strong> themes instantly.
               </p>
 
               <p className="text-gray-300 text-lg text-center max-w-sm">
